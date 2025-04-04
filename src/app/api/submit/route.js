@@ -6,8 +6,18 @@ import os from "os";
 import path from "path";
 import fs from "fs";
 import puppeteer from "puppeteer";
+import supabase from "@/lib/supabaseClient";
+import { generatePdfHtml } from "@/lib/templates/pdfTemplate";
+import { auth } from "@clerk/nextjs/server";
+// ✅ Correct
+import { clerkClient } from "@clerk/express";
 
 export async function POST(req) {
+  const { userId } = await auth();
+  if (!userId) {
+    // console.log("❌ Unauthorized access attempt.");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const formData = await req.formData();
     const file = formData.get("audio");
@@ -17,12 +27,19 @@ export async function POST(req) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const filePath = path.join(os.tmpdir(), `audio-${Date.now()}.webm`);
+    console.log("✅ Audio buffer size:", buffer.length);
+
+    const timestamp = Date.now();
+    const audioFilename = `audio-${timestamp}.webm`;
+    const audioPath = `recordings/${audioFilename}`;
+    const pdfPath = `summaries/idea-${timestamp}.pdf`;
+    const filePath = path.join(os.tmpdir(), audioFilename);
+
     await writeFile(filePath, buffer);
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // Step 1: Whisper transcription
+    // Step 1: Transcription
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(filePath),
       model: "whisper-1",
@@ -30,7 +47,7 @@ export async function POST(req) {
 
     const transcript = transcription.text;
 
-    // Step 2: Send to GPT
+    // Step 2: GPT Summary
     const prompt = `This was an idea spoken at night:\n"${transcript}"\n\nCan you summarize it, analyze its feasibility, check for similar existing ideas, and create an action plan to execute it? Be concise but structured.`;
 
     const gptRes = await openai.chat.completions.create({
@@ -39,37 +56,20 @@ export async function POST(req) {
     });
 
     const summary = gptRes.choices[0].message.content;
-    console.log("GPT Summary:", summary);
+    console.log("🧠 GPT Summary generated.");
 
-    // Step 3: Generate PDF using Puppeteer
-    const html = `
-      <html>
-        <head>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 2rem;
-              line-height: 1.6;
-            }
-            h1 {
-              font-size: 24px;
-              margin-bottom: 16px;
-            }
-            pre {
-              background-color: #f5f5f5;
-              padding: 1rem;
-              border-radius: 5px;
-              white-space: pre-wrap;
-              word-wrap: break-word;
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Your Nighttime Idea Summary</h1>
-          <pre>${summary}</pre>
-        </body>
-      </html>
-    `;
+    // Then instead of inline HTML:
+
+    const html = generatePdfHtml(summary);
+    // // Step 3: Generate PDF
+    // const html = `
+    //   <html>
+    //     <body>
+    //       <h1>Your Nighttime Idea Summary</h1>
+    //       <pre>${summary}</pre>
+    //     </body>
+    //   </html>
+    // `;
 
     const browser = await puppeteer.launch({
       headless: "new",
@@ -81,7 +81,120 @@ export async function POST(req) {
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
     await browser.close();
 
-    // Step 4: Email PDF
+    console.log("✅ PDF buffer size:", pdfBuffer.length);
+
+    // Step 4: Upload to Supabase Storage
+    const { error: audioUploadError } = await supabase.storage
+      .from("idea-assets")
+      .upload(audioPath, buffer, {
+        contentType: "audio/webm",
+        upsert: true,
+      });
+
+    if (audioUploadError) {
+      console.error("❌ Audio upload failed:", audioUploadError.message);
+      throw new Error("Audio upload failed");
+    }
+
+    const { error: pdfUploadError } = await supabase.storage
+      .from("idea-assets")
+      .upload(pdfPath, pdfBuffer, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (pdfUploadError) {
+      console.error("❌ PDF upload failed:", pdfUploadError.message);
+      throw new Error("PDF upload failed");
+    }
+
+    const { data: audioUrlData } = supabase.storage
+      .from("idea-assets")
+      .getPublicUrl(audioPath);
+
+    const { data: pdfUrlData } = supabase.storage
+      .from("idea-assets")
+      .getPublicUrl(pdfPath);
+
+    const audioUrl = audioUrlData.publicUrl;
+    const pdfUrl = pdfUrlData.publicUrl;
+
+    // Step 5: User check / insert
+    // const userId = "00000000-0000-0000-0000-000000000000";
+    // const email = "test@idea.ai";
+
+    const user = await clerkClient.users.getUser(userId);
+    const email = user.emailAddresses[0].emailAddress;
+
+    let existingUser = null;
+
+    try {
+      const { data } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", userId)
+        .single();
+
+      existingUser = data;
+    } catch (err) {
+      console.warn("User not found. Will insert.");
+    }
+
+    if (!existingUser) {
+      const { error: insertUserErr } = await supabase
+        .from("users")
+        .insert([{ id: userId, email }]);
+
+      if (insertUserErr) {
+        console.error("User insert error:", insertUserErr.message);
+      } else {
+        console.log("✅ New user inserted.");
+      }
+    }
+
+    // let existingUser = null;
+
+    // try {
+    //   const { data } = await supabase
+    //     .from("users")
+    //     .select("id")
+    //     .eq("id", userId)
+    //     .single();
+
+    //   existingUser = data;
+    // } catch (err) {
+    //   console.warn("User not found. Will insert.");
+    // }
+
+    // if (!existingUser) {
+    //   const { error: insertUserErr } = await supabase
+    //     .from("users")
+    //     .insert([{ id: userId, email }]);
+
+    //   if (insertUserErr) {
+    //     console.error("User insert error:", insertUserErr.message);
+    //   } else {
+    //     console.log("✅ New user inserted.");
+    //   }
+    // }
+
+    // Step 6: Insert idea record
+    const { error: insertIdeaErr } = await supabase.from("ideas").insert([
+      {
+        user_id: userId,
+        name: "Midnight Idea",
+        audio_url: audioUrl,
+        pdf_url: pdfUrl,
+      },
+    ]);
+
+    if (insertIdeaErr) {
+      console.error("❌ Idea insert error:", insertIdeaErr.message);
+    } else {
+      console.log("✅ Idea inserted in DB.");
+    }
+
+    // Step 7: Email summary PDF
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -92,20 +205,20 @@ export async function POST(req) {
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
-      to: process.env.EMAIL_TO, // hardcoded for now
+      to: email,
       subject: "Your Nighttime Idea - Summary and Plan",
       text: "Attached is your AI-generated summary and plan.",
       attachments: [{ filename: "idea-summary.pdf", content: pdfBuffer }],
     });
 
-    // Cleanup
+    // Step 8: Cleanup tmp file
     await unlink(filePath);
 
     return NextResponse.json({ status: "success" });
   } catch (err) {
-    console.error("Error in /api/submit:", err);
+    console.error("❌ Error in /api/submit:", err);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal Server Error", message: err.message },
       { status: 500 }
     );
   }
