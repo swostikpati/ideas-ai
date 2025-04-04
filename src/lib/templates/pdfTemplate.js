@@ -1,4 +1,7 @@
-export function generatePdfHtml(summary) {
+import { marked } from "marked";
+
+export function generatePdfHtml(title, content) {
+  const htmlFromMarkdown = marked.parse(content);
   return `
     <html>
       <head>
@@ -22,8 +25,8 @@ export function generatePdfHtml(summary) {
         </style>
       </head>
       <body>
-        <h1>Your Nighttime Idea Summary</h1>
-        <pre>${summary}</pre>
+        <h1> ${title}</h1>
+        <pre> ${htmlFromMarkdown}</pre>
       </body>
     </html>
   `;

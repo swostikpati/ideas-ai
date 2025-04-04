@@ -11,6 +11,7 @@ import { generatePdfHtml } from "@/lib/templates/pdfTemplate";
 import { auth } from "@clerk/nextjs/server";
 // ✅ Correct
 import { clerkClient } from "@clerk/express";
+import detailedIdeaPrompt from "@/lib/prompts/gptPrompt";
 
 export async function POST(req) {
   const { userId } = await auth();
@@ -48,19 +49,49 @@ export async function POST(req) {
     const transcript = transcription.text;
 
     // Step 2: GPT Summary
-    const prompt = `This was an idea spoken at night:\n"${transcript}"\n\nCan you summarize it, analyze its feasibility, check for similar existing ideas, and create an action plan to execute it? Be concise but structured.`;
+    // const prompt = `This was an idea spoken at night:\n"${transcript}"\n\nCan you summarize it, analyze its feasibility, check for similar existing ideas, and create an action plan to execute it? Be concise but structured.`;
+    const prompt = detailedIdeaPrompt(transcript);
 
     const gptRes = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4",
     });
+    let rawContent = gptRes.choices[0].message.content.trim();
 
-    const summary = gptRes.choices[0].message.content;
+    // Extract title and content
+    const [firstLine, ...rest] = rawContent.split("\n");
+    const title = firstLine
+      .replace(/[^a-zA-Z0-9\s]/g, "")
+      .trim()
+      .slice(0, 50);
+    const content = rest.join("\n").trim();
+
+    console.log("📄 Extracted Title:", title);
+    // const summary = gptRes.choices[0].message.content;
+    // let gptContent;
+    // try {
+    //   let raw = gptRes.choices[0].message.content.trim();
+
+    //   // Remove markdown code fences (e.g., ```json ... ```)
+    //   if (raw.startsWith("```json") || raw.startsWith("```")) {
+    //     raw = raw.replace(/```json|```/g, "").trim();
+    //   }
+    //   gptContent = JSON.parse(gptRes.choices[0].message.content);
+    // } catch (err) {
+    //   console.error("❌ Failed to parse GPT response as JSON:", err);
+    //   return NextResponse.json(
+    //     { error: "Invalid GPT response format" },
+    //     { status: 500 }
+    //   );
+    // }
+
+    // const { title, content } = gptContent;
+
     console.log("🧠 GPT Summary generated.");
 
     // Then instead of inline HTML:
 
-    const html = generatePdfHtml(summary);
+    const html = generatePdfHtml(title, content);
     // // Step 3: Generate PDF
     // const html = `
     //   <html>
@@ -182,7 +213,7 @@ export async function POST(req) {
     const { error: insertIdeaErr } = await supabase.from("ideas").insert([
       {
         user_id: userId,
-        name: "Midnight Idea",
+        name: title || "Midnight Idea",
         audio_url: audioUrl,
         pdf_url: pdfUrl,
       },
@@ -206,8 +237,10 @@ export async function POST(req) {
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: "Your Nighttime Idea - Summary and Plan",
-      text: "Attached is your AI-generated summary and plan.",
+      subject: `Ready to Build - ${title}`,
+      text: `You've taken the first step—your idea has been heard, processed, and brought to life. 
+      Attached is a detailed breakdown of your idea: from core concept and competitor analysis to technical feasibility and funding possibilities.
+      Take your time reading through it. And when you're ready... let's build it together!`,
       attachments: [{ filename: "idea-summary.pdf", content: pdfBuffer }],
     });
 
