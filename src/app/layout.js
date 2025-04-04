@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import {
   ClerkProvider,
@@ -40,7 +41,7 @@ export default function RootLayout({ children }) {
       signInForceRedirectUrl="/dashboard"
       signUpForceRedirectUrl="/dashboard"
     >
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body>
           <header className="flex justify-end items-center p-4 gap-4 h-16">
             {/* <SignedOut>
@@ -51,7 +52,14 @@ export default function RootLayout({ children }) {
               <UserButton />
             </SignedIn> */}
           </header>
-          {children}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

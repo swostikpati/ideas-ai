@@ -46,15 +46,41 @@ export default function Recorder({ onSubmitSuccess }) {
   };
 
   return (
-    <div className="text-white">
-      <h2 className="text-2xl mb-4">🧠 Idea Recorder</h2>
-      <button
-        onClick={recording ? stopRecording : startRecording}
-        className="bg-white text-black px-4 py-2 rounded"
-      >
-        {recording ? "Stop Recording" : "Start Recording"}
-      </button>
-      {audioURL && <audio src={audioURL} controls className="mt-4" />}
+    <div className="mb-8">
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium flex items-center gap-2">
+          <span className="bg-primary/10 text-primary p-1 rounded">🧠</span>
+          Record Your Ideas
+        </h2>
+        <div className="bg-card rounded-lg p-4 border shadow-sm">
+          <button
+            onClick={recording ? stopRecording : startRecording}
+            className={`w-full flex items-center justify-center gap-2 p-3 rounded-md transition-all ${
+              recording
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
+          >
+            {recording ? (
+              <>
+                <span className="animate-pulse">⚫</span>
+                Stop Recording
+              </>
+            ) : (
+              <>
+                <span>🎙️</span>
+                Start Recording
+              </>
+            )}
+          </button>
+
+          {audioURL && (
+            <div className="mt-4 bg-muted/50 rounded-md p-2">
+              <audio src={audioURL} controls className="w-full h-10" />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

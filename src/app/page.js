@@ -14,6 +14,7 @@ export default function Home() {
       <h1 className="text-3xl font-bold mb-6">
         Welcome to Late Night Ideas 🌙
       </h1>
+      {/* <h1 className="text-3xl font-bold underline">Hello world!</h1> */}
 
       <SignedOut>
         <div className="flex gap-4">
