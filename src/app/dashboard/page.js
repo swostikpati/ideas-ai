@@ -66,7 +66,7 @@ export default function Dashboard() {
           </div>
         ) : ideas.length === 0 ? (
           <p className="text-muted-foreground text-center mt-6">
-            No ideas yet. Go dream something up tonight 😴
+            Nothing here… yet. Got a dumb idea?
           </p>
         ) : (
           // <div className="space-y-4">

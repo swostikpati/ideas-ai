@@ -16,11 +16,11 @@ export default function Home() {
       {/* Top Bar */}
       <header className="flex items-center justify-between w-full">
         <span className="text-xl font-semibold tracking-tight">
-          LateNightIdeas
+          dumbideas.ai
         </span>
         <SignedOut>
           <SignInButton>
-            <Button variant="ghost" className="text-sm font-medium">
+            <Button variant="ghost" className="text-xl font-medium">
               Login
             </Button>
           </SignInButton>
@@ -45,10 +45,10 @@ export default function Home() {
             “
           </span>
           <br />
-          Turn Late Night Thoughts into Reality
+          Building unicorns from your 2am ideas
         </h1>
         <p className="mt-8 text-lg text-muted-foreground max-w-md">
-          A voice-powered idea capture tool for dreamers & doers.
+          Talk Your Dumb Idea Into Existence :)
         </p>
         <div className="w-16 h-[2px] bg-white/30 my-4 rounded-full" />
       </section>
@@ -84,7 +84,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="mt-16 border-t border-white/10 pt-4 text-sm text-muted-foreground flex justify-between w-full max-w-md mx-auto">
-        <span>© 2025 LateNightIdeas</span>
+        <span>© 2025 dumbideas.ai</span>
         <div className="flex gap-4">
           <a
             href="https://www.linkedin.com/in/swostikpati"
