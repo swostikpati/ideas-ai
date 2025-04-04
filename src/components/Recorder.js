@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useRef } from "react";
 import { AudioPlayer } from "react-audio-play";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ export default function Recorder({ onSubmitSuccess }) {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioURL, setAudioURL] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
+  const [confirmation, setConfirmation] = useState(false);
+  const [loading, setLoading] = useState(false);
   const chunksRef = useRef([]);
 
   const startRecording = async () => {
@@ -39,26 +42,29 @@ export default function Recorder({ onSubmitSuccess }) {
     const formData = new FormData();
     formData.append("audio", audioBlob);
 
-    const res = await fetch("/api/submit", {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    });
+    try {
+      setLoading(true); // ← Start loading
+      await fetch("/api/submit", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
 
-    const data = await res.json();
-    if (res.ok) {
-      alert("🎉 Idea submitted! Check your email soon.");
+      setConfirmation(true);
       setAudioURL(null);
       setAudioBlob(null);
       onSubmitSuccess?.(); // Re-fetch ideas if needed
-    } else {
-      alert("❌ Something went wrong: " + data.message);
+    } catch (error) {
+      console.error("❌ Submission failed:", error.message);
+    } finally {
+      setLoading(false); // ← Stop loading no matter what
     }
   };
 
   const resetRecording = () => {
     setAudioURL(null);
     setAudioBlob(null);
+    setConfirmation(false);
     chunksRef.current = [];
   };
 
@@ -69,81 +75,74 @@ export default function Recorder({ onSubmitSuccess }) {
           <span className="bg-primary/10 text-primary p-1 rounded">🧠</span>
           Record Your Ideas
         </h2>
+
         <div className="bg-card rounded-lg p-4 border shadow-sm">
-          {!audioURL && (
+          {!audioURL && !recording && !confirmation && (
             <button
-              onClick={recording ? stopRecording : startRecording}
-              className={`w-full flex items-center justify-center gap-2 p-3 rounded-md transition-all ${
-                recording
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              }`}
+              onClick={startRecording}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
             >
-              {recording ? (
-                <>
-                  <span className="animate-pulse">⚫</span>
-                  Stop Recording
-                </>
-              ) : (
-                <>
-                  <span>🎙️</span>
-                  Start Recording
-                </>
-              )}
+              <span>🎙️</span> Start Recording
             </button>
           )}
 
-          {/* {audioURL && (
-            <div className="mt-4 bg-muted/50 rounded-md p-2 space-y-4">
-              <audio src={audioURL} controls className="w-full h-10" />
-              <div className="flex gap-2">
-                <button
-                  onClick={submitRecording}
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-                >
-                  ✅ Submit Idea
-                </button>
-                <button
-                  onClick={resetRecording}
-                  className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition"
-                >
-                  🔁 Re-record
-                </button>
-              </div>
-            </div>
-          )} */}
-          {audioURL && (
-            <div className=" bg-white/5 backdrop-blur-md rounded-xl p-4 space-y-4 border border-white/10 shadow-sm">
-              {/* Custom Audio Player */}
-              <AudioPlayer
-                // ref={playerRef}
-                // onPlay={handlePlay}
-                src={audioURL}
-                color="#97d7d3"
-                sliderColor="#97d7d3"
-                style={{
-                  background: "transparent",
-                  borderRadius: "12px",
-                  padding: "10px",
-                  width: "100%",
-                }}
-              />
+          {recording && (
+            <button
+              onClick={stopRecording}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all"
+            >
+              <span className="animate-pulse">⚫</span> Stop Recording
+            </button>
+          )}
 
-              {/* Refined Buttons */}
-              <div className="flex gap-3 justify-end">
-                <Button
-                  onClick={submitRecording}
-                  variant="outline"
-                  className="px-4 py-2"
-                >
-                  Submit Idea ✅
-                </Button>
-                <Button
-                  onClick={resetRecording}
-                  variant="outline"
-                  className="px-4 py-2"
-                >
-                  Re-record 🔁
+          {audioURL && !confirmation && (
+            <div className="mt-4 bg-white/5 backdrop-blur-md rounded-xl p-4 space-y-4 border border-white/10 shadow-sm">
+              {loading ? (
+                <>
+                  <div className="text-center bg-blue-800/30 border border-blue-600 text-blue-200 py-4 px-6 rounded-lg font-medium">
+                    ✨Let the magic happen...
+                  </div>
+
+                  <div className="flex justify-center items-center py-6">
+                    <span className="animate-spin h-6 w-6 rounded-full border-2 border-t-transparent border-white" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <AudioPlayer
+                    src={audioURL}
+                    color="#97d7d3"
+                    sliderColor="#97d7d3"
+                    style={{
+                      background: "transparent",
+                      borderRadius: "12px",
+                      padding: "10px",
+                      width: "100%",
+                    }}
+                  />
+
+                  <div className="flex gap-3 justify-end">
+                    <Button onClick={submitRecording} variant="outline">
+                      Submit Idea ✅
+                    </Button>
+                    <Button onClick={resetRecording} variant="outline">
+                      Re-record 🔁
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {confirmation && (
+            <div className="space-y-4">
+              <div className="text-center bg-green-800/30 border border-green-600 text-green-200 py-4 px-6 rounded-lg font-medium">
+                Your idea is being processed and will be emailed to you shortly!
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={resetRecording} variant="outline">
+                  ✅ Done
                 </Button>
               </div>
             </div>
