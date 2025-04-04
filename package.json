@@ -29,6 +29,7 @@
     "postcss": "^8.5.3",
     "puppeteer": "^24.6.0",
     "react": "^19.0.0",
+    "react-audio-play": "^1.0.4",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.1.0",
     "tailwindcss": "^4.1.2",
