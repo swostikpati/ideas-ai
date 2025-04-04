@@ -43,7 +43,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground mx-4 sm:mx-8 max-w-xl">
+    <div className="min-h-screen bg-background text-foreground mx-4 sm:mx-8 max-w-xl pt-8 sm:pt-12 pb-8 sm:pb-12">
       <SignedOut>
         <RedirectToSignIn redirectUrl="/" />
       </SignedOut>
