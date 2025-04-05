@@ -44,6 +44,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground mx-4 sm:mx-8 max-w-xl pt-8 sm:pt-12 pb-8 sm:pb-12">
+      {/* // <div className="min-h-screen flex flex-col justify-between bg-background text-foreground mx-4 sm:mx-8 max-w-xl pt-8 sm:pt-12 pb-8 sm:pb-12"> */}
       <SignedOut>
         <RedirectToSignIn redirectUrl="/" />
       </SignedOut>
@@ -61,6 +62,8 @@ export default function Dashboard() {
 
         {loading ? (
           <div className="space-y-4">
+            <Skeleton className="h-24 w-full rounded-md" />
+            <Skeleton className="h-24 w-full rounded-md" />
             <Skeleton className="h-24 w-full rounded-md" />
             <Skeleton className="h-24 w-full rounded-md" />
           </div>

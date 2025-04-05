@@ -11,16 +11,49 @@ export default function Recorder({ onSubmitSuccess }) {
   const [audioBlob, setAudioBlob] = useState(null);
   const [confirmation, setConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mimeType, setMimeType] = useState("audio/webm");
   const chunksRef = useRef([]);
+
+  // const startRecording = async () => {
+  //   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  //   const recorder = new MediaRecorder(stream);
+  //   chunksRef.current = [];
+
+  //   recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+  //   recorder.onstop = () => {
+  //     const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+  //     const url = URL.createObjectURL(blob);
+  //     setAudioURL(url);
+  //     setAudioBlob(blob);
+  //   };
+
+  //   recorder.start();
+  //   setMediaRecorder(recorder);
+  //   setRecording(true);
+  // };
 
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
-    chunksRef.current = [];
 
-    recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+    let options = {};
+    if (MediaRecorder.isTypeSupported("audio/webm")) {
+      options.mimeType = "audio/webm";
+    } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+      options.mimeType = "audio/mp4";
+    }
+
+    const recorder = new MediaRecorder(stream, options);
+    chunksRef.current = [];
+    setMimeType(options.mimeType || "audio/webm");
+    console.log("🎙️ MIME Type used:", mimeType);
+
+    recorder.ondataavailable = (e) => {
+      chunksRef.current.push(e.data);
+    };
+
     recorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const type = chunksRef.current[0]?.type || mimeType;
+      const blob = new Blob(chunksRef.current, { type });
       const url = URL.createObjectURL(blob);
       setAudioURL(url);
       setAudioBlob(blob);
@@ -39,11 +72,19 @@ export default function Recorder({ onSubmitSuccess }) {
   const submitRecording = async () => {
     if (!audioBlob) return;
 
+    let extension = "webm"; // default fallback
+
+    if (mimeType.includes("mp4")) {
+      extension = "m4a";
+    } else if (mimeType.includes("ogg")) {
+      extension = "ogg";
+    }
+
     const formData = new FormData();
-    formData.append("audio", audioBlob);
+    formData.append("audio", audioBlob, `recording.${extension}`);
 
     try {
-      setLoading(true); // ← Start loading
+      setLoading(true);
       await fetch("/api/submit", {
         method: "POST",
         body: formData,
@@ -53,13 +94,38 @@ export default function Recorder({ onSubmitSuccess }) {
       setConfirmation(true);
       setAudioURL(null);
       setAudioBlob(null);
-      onSubmitSuccess?.(); // Re-fetch ideas if needed
+      onSubmitSuccess?.();
     } catch (error) {
       console.error("❌ Submission failed:", error.message);
     } finally {
-      setLoading(false); // ← Stop loading no matter what
+      setLoading(false);
     }
   };
+
+  // const submitRecording = async () => {
+  //   if (!audioBlob) return;
+
+  //   const formData = new FormData();
+  //   formData.append("audio", audioBlob);
+
+  //   try {
+  //     setLoading(true); // ← Start loading
+  //     await fetch("/api/submit", {
+  //       method: "POST",
+  //       body: formData,
+  //       credentials: "include",
+  //     });
+
+  //     setConfirmation(true);
+  //     setAudioURL(null);
+  //     setAudioBlob(null);
+  //     onSubmitSuccess?.(); // Re-fetch ideas if needed
+  //   } catch (error) {
+  //     console.error("❌ Submission failed:", error.message);
+  //   } finally {
+  //     setLoading(false); // ← Stop loading no matter what
+  //   }
+  // };
 
   const resetRecording = () => {
     setAudioURL(null);
