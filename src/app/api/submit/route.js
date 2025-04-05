@@ -1,4 +1,4 @@
-export const maxDuration = 40;
+export const maxDuration = 40; // to prevent the vercel function from timing out before
 
 import { NextResponse } from "next/server";
 import { writeFile, unlink } from "fs/promises";
@@ -7,7 +7,9 @@ import nodemailer from "nodemailer";
 import os from "os";
 import path from "path";
 import fs from "fs";
-import puppeteer from "puppeteer";
+// import puppeteerdev from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import supabase from "@/lib/supabaseClient";
 import { generatePdfHtml } from "@/lib/templates/pdfTemplate";
 import { auth } from "@clerk/nextjs/server";
@@ -104,10 +106,24 @@ export async function POST(req) {
     //   </html>
     // `;
 
-    const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    const isDev = process.env.NODE_ENV !== "production";
+
+    let browser;
+
+    if (isDev) {
+      const puppeteerdev = (await import("puppeteer")).default;
+      browser = await puppeteerdev.launch({
+        headless: "new",
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      });
+    } else {
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      });
+    }
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
