@@ -97,6 +97,26 @@ export default function Dashboard() {
           </div>
         )}
       </SignedIn>
+      {/* Footer */}
+      <footer className="mt-16 border-t border-white/10 pt-4 text-sm text-muted-foreground flex justify-between w-full max-w-md mx-auto">
+        <span>© 2025 dumbideas.ai</span>
+        <div className="flex gap-4">
+          <a
+            href="https://www.linkedin.com/in/swostikpati"
+            target="_blank"
+            className="hover:underline"
+          >
+            Linkedin
+          </a>
+          <a
+            href="https://github.com/swostikpati"
+            target="_blank"
+            className="hover:underline"
+          >
+            GitHub
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }

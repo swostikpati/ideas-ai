@@ -1,3 +1,5 @@
+export const maxDuration = 40;
+
 import { NextResponse } from "next/server";
 import { writeFile, unlink } from "fs/promises";
 import { OpenAI } from "openai";
