@@ -1,4 +1,4 @@
-export const maxDuration = 40; // to prevent the vercel function from timing out before
+export const maxDuration = 50; // to prevent the vercel function from timing out before
 
 import { NextResponse } from "next/server";
 import { writeFile, unlink } from "fs/promises";
@@ -17,7 +17,19 @@ import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/express";
 import detailedIdeaPrompt from "@/lib/prompts/gptPrompt";
 
+import { rateLimit } from "@/lib/rateLimiter";
+
+const checkLimit = rateLimit({ limit: 3, windowMs: 60 * 1000 }); // 3 requests per minute
+
 export async function POST(req) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+
+  if (!checkLimit(ip)) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
   const { userId } = await auth();
   if (!userId) {
     // console.log("❌ Unauthorized access attempt.");

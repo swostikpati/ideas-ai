@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { AudioPlayer } from "react-audio-play";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function Recorder({ onSubmitSuccess }) {
   const [recording, setRecording] = useState(false);
@@ -72,24 +73,29 @@ export default function Recorder({ onSubmitSuccess }) {
   const submitRecording = async () => {
     if (!audioBlob) return;
 
-    let extension = "webm"; // default fallback
-
-    if (mimeType.includes("mp4")) {
-      extension = "m4a";
-    } else if (mimeType.includes("ogg")) {
-      extension = "ogg";
-    }
+    let extension = "webm";
+    if (mimeType.includes("mp4")) extension = "m4a";
+    else if (mimeType.includes("ogg")) extension = "ogg";
 
     const formData = new FormData();
     formData.append("audio", audioBlob, `recording.${extension}`);
 
     try {
       setLoading(true);
-      await fetch("/api/submit", {
+      const res = await fetch("/api/submit", {
         method: "POST",
         body: formData,
         credentials: "include",
       });
+
+      if (!res.ok) {
+        // Show toast on failure
+        toast("Oops something went wrong, please try again!");
+        // resetRecording(); // Go back to re-record + submit
+        setConfirmation(false); // Show re-submit and re-record
+        setLoading(false);
+        return;
+      }
 
       setConfirmation(true);
       setAudioURL(null);
@@ -97,10 +103,45 @@ export default function Recorder({ onSubmitSuccess }) {
       onSubmitSuccess?.();
     } catch (error) {
       console.error("❌ Submission failed:", error.message);
+      toast("Oops something went wrong, please try again");
+      resetRecording(); // Still allow user to retry
     } finally {
       setLoading(false);
     }
   };
+
+  // const submitRecording = async () => {
+  //   if (!audioBlob) return;
+
+  //   let extension = "webm"; // default fallback
+
+  //   if (mimeType.includes("mp4")) {
+  //     extension = "m4a";
+  //   } else if (mimeType.includes("ogg")) {
+  //     extension = "ogg";
+  //   }
+
+  //   const formData = new FormData();
+  //   formData.append("audio", audioBlob, `recording.${extension}`);
+
+  //   try {
+  //     setLoading(true);
+  //     await fetch("/api/submit", {
+  //       method: "POST",
+  //       body: formData,
+  //       credentials: "include",
+  //     });
+
+  //     setConfirmation(true);
+  //     setAudioURL(null);
+  //     setAudioBlob(null);
+  //     onSubmitSuccess?.();
+  //   } catch (error) {
+  //     console.error("❌ Submission failed:", error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // const submitRecording = async () => {
   //   if (!audioBlob) return;
