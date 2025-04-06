@@ -208,6 +208,8 @@ export default function Recorder({ onSubmitSuccess }) {
                 <>
                   <div className="text-center bg-blue-800/30 border border-blue-600 text-blue-200 py-4 px-6 rounded-lg font-medium">
                     ✨Let the magic happen...
+                    <br />
+                    (less than 1 min)
                   </div>
 
                   <div className="flex justify-center items-center py-6">

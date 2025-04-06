@@ -18,6 +18,8 @@ import { clerkClient } from "@clerk/express";
 import detailedIdeaPrompt from "@/lib/prompts/gptPrompt";
 
 import { rateLimit } from "@/lib/rateLimiter";
+import { Resend } from "resend";
+import { randomUUID } from "crypto";
 
 const checkLimit = rateLimit({ limit: 3, windowMs: 60 * 1000 }); // 3 requests per minute
 
@@ -35,6 +37,7 @@ export async function POST(req) {
     // console.log("❌ Unauthorized access attempt.");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
   try {
     const formData = await req.formData();
     const file = formData.get("audio");
@@ -47,9 +50,17 @@ export async function POST(req) {
     console.log("✅ Audio buffer size:", buffer.length);
 
     const timestamp = Date.now();
-    const audioFilename = `audio-${timestamp}.webm`;
+    const uuid = randomUUID();
+
+    const audioFilename = `idea-${uuid}-${timestamp}.webm`;
     const audioPath = `recordings/${audioFilename}`;
-    const pdfPath = `summaries/idea-${timestamp}.pdf`;
+
+    const pdfFilename = `idea-${uuid}-${timestamp}.pdf`;
+    const pdfPath = `summaries/${pdfFilename}`;
+
+    // const audioFilename = `audio-${timestamp}.webm`;
+    // const audioPath = `recordings/${audioFilename}`;
+    // const pdfPath = `summaries/idea-${timestamp}.pdf`;
     const filePath = path.join(os.tmpdir(), audioFilename);
 
     await writeFile(filePath, buffer);
@@ -256,21 +267,44 @@ export async function POST(req) {
     }
 
     // Step 7: Email summary PDF
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_FROM,
-        pass: process.env.EMAIL_PASS,
-      },
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const randomDelayHours = Math.floor(Math.random() * 12) + 1;
+    console.log("Email will be sent in", randomDelayHours, "hours");
+
+    await resend.emails.send({
+      from: "dumbideas.ai <hello@updates.dumbideas-ai.com>",
+      to: email,
+      subject: `Ready to Build - ${title}!!`,
+      html: `
+          <p>You've taken the first step—your idea has been heard, processed, and brought to life.</p>
+          <p>Here's your detailed summary:</p>
+          <p><a href="${pdfUrl}" target="_blank" style="color:#4f46e5;">📄 View your idea PDF</a></p>
+           <br/>
+          <p>Take your time reading through it. And when you're ready... let's build it together! 🚀</p>`,
+      scheduledAt: `in ${randomDelayHours} hours`,
+      // attachments: [
+      //   {
+      //     filename: `${title}.pdf`,
+      //     path: pdfUrl,
+      //   },
+      // ],
     });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: email,
-      subject: `Ready to Build - ${title}`,
-      text: `You've taken the first step—your idea has been heard, processed, and brought to life. Attached is a detailed breakdown of your idea: from core concept and competitor analysis to technical feasibility and funding possibilities. Take your time reading through it. And when you're ready... let's build it together!`,
-      attachments: [{ filename: "idea-summary.pdf", content: pdfBuffer }],
-    });
+    // const transporter = nodemailer.createTransport({
+    //   service: "gmail",
+    //   auth: {
+    //     user: process.env.EMAIL_FROM,
+    //     pass: process.env.EMAIL_PASS,
+    //   },
+    // });
+
+    // await transporter.sendMail({
+    //   from: process.env.EMAIL_FROM,
+    //   to: email,
+    //   subject: `Ready to Build - ${title}`,
+    //   text: `You've taken the first step—your idea has been heard, processed, and brought to life. Attached is a detailed breakdown of your idea: from core concept and competitor analysis to technical feasibility and funding possibilities. Take your time reading through it. And when you're ready... let's build it together!`,
+    //   attachments: [{ filename: "idea-summary.pdf", content: pdfBuffer }],
+    // });
 
     // Step 8: Cleanup tmp file
     await unlink(filePath);
