@@ -268,9 +268,7 @@ export async function POST(req) {
       from: process.env.EMAIL_FROM,
       to: email,
       subject: `Ready to Build - ${title}`,
-      text: `You've taken the first step—your idea has been heard, processed, and brought to life. 
-      Attached is a detailed breakdown of your idea: from core concept and competitor analysis to technical feasibility and funding possibilities.
-      Take your time reading through it. And when you're ready... let's build it together!`,
+      text: `You've taken the first step—your idea has been heard, processed, and brought to life. Attached is a detailed breakdown of your idea: from core concept and competitor analysis to technical feasibility and funding possibilities. Take your time reading through it. And when you're ready... let's build it together!`,
       attachments: [{ filename: "idea-summary.pdf", content: pdfBuffer }],
     });
 
