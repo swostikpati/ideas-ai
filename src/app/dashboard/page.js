@@ -61,14 +61,14 @@ export default function Dashboard() {
         <Separator className="my-6" />
 
         {loading ? (
-          <div className="space-y-4">
+          <div className="min-h-[55vh] space-y-4">
             <Skeleton className="h-24 w-full rounded-md" />
             <Skeleton className="h-24 w-full rounded-md" />
             <Skeleton className="h-24 w-full rounded-md" />
             <Skeleton className="h-24 w-full rounded-md" />
           </div>
         ) : ideas.length === 0 ? (
-          <p className="text-muted-foreground text-center mt-6">
+          <p className="min-h-[55vh] text-muted-foreground text-center mt-6">
             Nothing here… yet. Got a dumb idea?
           </p>
         ) : (
@@ -93,7 +93,7 @@ export default function Dashboard() {
           //     </Card>
           //   ))}
           // </div>
-          <div className="space-y-4">
+          <div className="min-h-[55vh] space-y-4">
             {ideas.map((idea) => (
               <IdeaCard key={idea.id} idea={idea} />
             ))}
