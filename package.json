@@ -29,6 +29,7 @@
     "openai": "^4.91.1",
     "pdfkit": "^0.16.0",
     "postcss": "^8.5.3",
+    "posthog-js": "^1.234.10",
     "puppeteer-core": "^24.6.0",
     "react": "^19.0.0",
     "react-audio-play": "^1.0.4",

@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { PostHogProvider } from "@/app/providers";
 
 import "./globals.css";
 import {
@@ -60,7 +61,7 @@ export default function RootLayout({ children }) {
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <PostHogProvider>{children}</PostHogProvider>
             <Toaster richColors />
           </ThemeProvider>
         </body>
