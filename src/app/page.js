@@ -54,7 +54,7 @@ export default function Home() {
       </section>
 
       {/* Video Demo Placeholder */}
-      <section className="w-full max-w-md mx-auto mt-10">
+      {/* <section className="w-full max-w-md mx-auto mt-10">
         <div className="aspect-video bg-white/5 border border-white/10 rounded-xl shadow-lg overflow-hidden">
           <iframe
             src="https://www.youtube.com/embed/K27diMbCsuw?si=L-JHUPKTHUXTTri1" // replace with your demo
@@ -63,6 +63,15 @@ export default function Home() {
             allowFullScreen
             className="w-full h-full"
           ></iframe>
+        </div>
+      </section> */}
+      <section className="w-full max-w-md mx-auto mt-10">
+        <div className="aspect-video bg-white/5 border border-white/10 rounded-xl shadow-lg overflow-hidden flex items-center justify-center">
+          <img
+            src="/images/img.png" // or /images/unicorn-idea-equation.png
+            alt="Unicorn Idea Equation"
+            className=" w-full h-full"
+          />
         </div>
       </section>
 
